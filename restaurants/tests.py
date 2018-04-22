@@ -3,7 +3,8 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from restaurants.models import Restaurant, Item
 from restaurants.forms import RestaurantForm, ItemForm, SignupForm, SigninForm
-from restaurants.views import restaurant_create
+from restaurants.views import restaurant_create, restaurant_delete, restaurant_update, item_create
+from django.http import response
 
 class ModelTestCase(TestCase):
     def setUp(self):
@@ -37,6 +38,7 @@ class ViewTestCase(TestCase):
         self.user = User.objects.create(
             username="bob",
             password='adminadmin',
+            is_staff=True,
             )
         self.user.set_password(self.user.password)
         self.user.save()
@@ -46,6 +48,12 @@ class ViewTestCase(TestCase):
             )
         self.user2.set_password(self.user2.password)
         self.user2.save()
+        self.user3 = User.objects.create(
+            username="bob3",
+            password='adminadmin',
+            )
+        self.user3.set_password(self.user3.password)
+        self.user3.save()
 
         self.restaurant_data = {
             "name": "Hamza's Pizza",
@@ -166,10 +174,13 @@ class ViewTestCase(TestCase):
 
     def test_restaurant_create_view(self):
         create_url = reverse("restaurant-create")
+        response = self.client.get(create_url)
+        self.assertEqual(response.status_code, 302)
+
         request = self.factory.get(create_url)
         request.user = self.user
-        response = restaurant_create(request)
-        self.assertEqual(response.status_code, 200)
+        response1 = restaurant_create(request)
+        self.assertEqual(response1.status_code, 200)
 
         request2 = self.factory.post(create_url, self.restaurant_data)
         request2.user = self.user
@@ -177,27 +188,67 @@ class ViewTestCase(TestCase):
         self.assertEqual(response2.status_code, 302)
 
     def test_item_create_view(self):
-        create_url = reverse("item-create", kwargs={"restaurant_id":self.restaurant_1.id})
+        create_url = reverse("item-create", kwargs={"restaurant_id":self.restaurant_2.id})
         response = self.client.get(create_url)
-        self.assertEqual(response.status_code, 200)
-
-        response = self.client.post(create_url, data=self.item_data)
         self.assertEqual(response.status_code, 302)
 
-        detail_url = reverse("restaurant-detail", kwargs={"restaurant_id":self.restaurant_1.id})
+        request = self.factory.get(create_url)
+        request.user = self.user
+        response1 = item_create(request, restaurant_id=self.restaurant_2.id)
+        self.assertEqual(response1.status_code, 200)
+
+        request = self.factory.get(create_url)
+        request.user = self.user2
+        response1 = item_create(request, restaurant_id=self.restaurant_2.id)
+        self.assertEqual(response1.status_code, 200)
+
+        request = self.factory.get(create_url)
+        request.user = self.user3
+        response1 = item_create(request, restaurant_id=self.restaurant_2.id)
+        self.assertEqual(response1.status_code, 302)
+
+        request = self.factory.post(create_url, self.item_data)
+        request.user = self.user2
+        response2 = item_create(request, restaurant_id=self.restaurant_2.id)
+        self.assertEqual(response2.status_code, 302)
+
+        detail_url = reverse("restaurant-detail", kwargs={"restaurant_id":self.restaurant_2.id})
         response = self.client.get(detail_url)
-        self.assertTrue(Item.objects.filter(restaurant=self.restaurant_1, name="Original Pizza").exists())
+        self.assertTrue(Item.objects.filter(restaurant=self.restaurant_2, name="Original Pizza").exists())
 
     def test_restaurant_update_view(self):
-        update_url = reverse("restaurant-update", kwargs={"restaurant_id":self.restaurant_1.id})
+        update_url = reverse("restaurant-update", kwargs={"restaurant_id":self.restaurant_2.id})
         response = self.client.get(update_url)
-        self.assertEqual(response.status_code, 200)
-
-        response = self.client.post(update_url, data=self.restaurant_data)
         self.assertEqual(response.status_code, 302)
+
+        request = self.factory.get(update_url)
+        request.user = self.user
+        response1 = restaurant_update(request, restaurant_id=self.restaurant_2.id)
+        self.assertEqual(response1.status_code, 200)
+
+        request = self.factory.get(update_url)
+        request.user = self.user2
+        response1 = restaurant_update(request, restaurant_id=self.restaurant_2.id)
+        self.assertEqual(response1.status_code, 200)
+
+        request = self.factory.get(update_url)
+        request.user = self.user3
+        response1 = restaurant_update(request, restaurant_id=self.restaurant_2.id)
+        self.assertEqual(response1.status_code, 302)
+
+        request2 = self.factory.post(update_url, self.restaurant_data)
+        request2.user = self.user
+        response2 = restaurant_update(request2, restaurant_id=self.restaurant_2.id)
+        self.assertEqual(response2.status_code, 302)
 
     def test_restaurant_delete_view(self):
         delete_url = reverse("restaurant-delete", kwargs={"restaurant_id":self.restaurant_1.id})
+        request = self.factory.get(delete_url)
+        request.user = self.user
+        response = restaurant_delete(request, restaurant_id=self.restaurant_1.id)
+        self.assertEqual(response.status_code, 302)
+
+        delete_url = reverse("restaurant-delete", kwargs={"restaurant_id":self.restaurant_2.id})
         response = self.client.get(delete_url)
         self.assertEqual(response.status_code, 302)
 

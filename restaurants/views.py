@@ -50,15 +50,25 @@ def restaurant_list(request):
 
 
 def restaurant_detail(request, restaurant_id):
+
     restaurant = Restaurant.objects.get(id=restaurant_id)
     items = Item.objects.filter(restaurant=restaurant)
+
+    if request.user.is_anonymous or  not request.user == restaurant.owner: 
+        showbtn = True
+    else:
+        showbtn = False
+
     context = {
         "restaurant": restaurant,
         "items": items,
+        "show" : showbtn,
     }
     return render(request, 'detail.html', context)
 
 def restaurant_create(request):
+    if request.user.is_anonymous:
+        return redirect('signin')
     form = RestaurantForm()
     if request.method == "POST":
         form = RestaurantForm(request.POST, request.FILES)
@@ -73,8 +83,10 @@ def restaurant_create(request):
     return render(request, 'create.html', context)
 
 def item_create(request, restaurant_id):
-    form = ItemForm()
     restaurant = Restaurant.objects.get(id=restaurant_id)
+    if request.user.is_anonymous and  not request.user == restaurant.owner:
+        return redirect('no_access')
+    form = ItemForm()
     if request.method == "POST":
         form = ItemForm(request.POST)
         if form.is_valid():
@@ -90,6 +102,9 @@ def item_create(request, restaurant_id):
 
 def restaurant_update(request, restaurant_id):
     restaurant_obj = Restaurant.objects.get(id=restaurant_id)
+    if request.user.is_anonymous and  not request.user== restaurant_obj.owner:
+        return redirect('no_access')
+
     form = RestaurantForm(instance=restaurant_obj)
     if request.method == "POST":
         form = RestaurantForm(request.POST, request.FILES, instance=restaurant_obj)
@@ -103,6 +118,12 @@ def restaurant_update(request, restaurant_id):
     return render(request, 'update.html', context)
 
 def restaurant_delete(request, restaurant_id):
+    if not request.user.is_staff:
+        return redirect('no_access')
     restaurant_obj = Restaurant.objects.get(id=restaurant_id)
     restaurant_obj.delete()
     return redirect('restaurant-list')
+
+def noaccess_view(request):
+    msg = "You don't have ACCESS"
+    return render(request,'no_access_tmp.html',msg)

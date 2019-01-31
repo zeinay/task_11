@@ -30,15 +30,21 @@
   </ul>
   <div class="card-body">
     <div class="row text-center">
+       {% if user.is_staff and user == restaurant.owner%}
         <div class="col-md-4">
             <a href="{% url 'restaurant-update' restaurant.id %}" class="btn btn-outline-primary btn-block">Update</a>
         </div>
-        <div class="col-md-4">
-            <a href="{% url 'restaurant-delete' restaurant.id %}" class="btn btn-outline-danger btn-block">Delete</a>
-        </div>
-        <div class="col-md-4">
+        {%endif%}
+        {% if user.is_staff%}
+          <div class="col-md-4">
+              <a href="{% url 'restaurant-delete' restaurant.id %}" class="btn btn-outline-danger btn-block">Delete</a>
+          </div>
+        {%endif%}
+        {% if showbtn %}
+          <div class="col-md-4">
             <a href="{% url 'item-create' restaurant.id %}" class="btn btn-outline-success btn-block">Add Item</a>
-        </div>
+          </div>
+        {%endif%}
     </div>
   </div>
 </div>
